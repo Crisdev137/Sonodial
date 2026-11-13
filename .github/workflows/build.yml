@@ -2,6 +2,8 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -39,3 +41,9 @@ jobs:
         with:
           name: sonodial-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publicar en Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Sonodial.apk
+          gh release create "v1.${{ github.run_number }}" Sonodial.apk --title "Sonodial v1.${{ github.run_number }}" --notes "APK de Sonodial. Descarga Sonodial.apk e instalalo en tu Android."
