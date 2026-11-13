@@ -1,0 +1,41 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descomprimir proyecto
+        run: unzip -o sonodial-src.zip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm install
+      - run: mkdir -p www && cp index.html www/index.html
+      - run: npx cap add android
+      - name: Native plugins (media volume, save image)
+        run: |
+          mkdir -p android/app/src/main/java/com/sonodial/app
+          cp native/*.java android/app/src/main/java/com/sonodial/app/
+      - name: Icono
+        continue-on-error: true
+        run: |
+          npx @capacitor/assets@3.0.5 generate --android --iconBackgroundColor '#0b0b0d' --iconBackgroundColorDark '#0b0b0d'
+      - name: Iconos intercambiables (10 variantes)
+        run: |
+          cp -r native/res/* android/app/src/main/res/
+          python3 native/add_icon_aliases.py
+      - name: Barra negra
+        run: sed -i 's/#3F51B5/#000000/;s/#303F9F/#000000/' android/app/src/main/res/values/colors.xml || true
+      - run: npx cap sync android
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sonodial-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
